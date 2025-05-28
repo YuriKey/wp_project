@@ -1,26 +1,23 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
+from config.api_config import ADMIN_CREDS, BASE_URL
+
 
 class ApiClient:
-    def __init__(self, base_url, auth):
+    def __init__(self, base_url):
         self.base_url = base_url
-        self.auth = HTTPBasicAuth(*auth)
+        self.auth = HTTPBasicAuth(*ADMIN_CREDS)
 
-    def post(self, endpoint, json):
-        return requests.post(f"{self.base_url}{endpoint}", json=json, auth=self.auth)
-
-    def get(self, endpoint, params=None):
+    def post(self, endpoint, json=None):
         url = f"{self.base_url}{endpoint}"
-        response = requests.get(url, params=params)
+        response = requests.post(url, json=json, auth=self.auth)
         return response
 
-    def put(self, endpoint, data=None, json=None):
+    def delete(self, endpoint, json=None):
         url = f"{self.base_url}{endpoint}"
-        response = requests.put(url, data=data, json=json)
+        response = requests.delete(url, json=json, auth=self.auth)  # , "force": "true"
         return response
 
-    def delete(self, endpoint):
-        url = f"{self.base_url}{endpoint}"
-        response = requests.delete(url)
-        return response
+
+api = ApiClient(BASE_URL)

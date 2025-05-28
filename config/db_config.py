@@ -1,5 +1,3 @@
-# config/config.py
-
 # Конфигурация MySQL
 DB_CONFIG = {
     "server": "localhost",
