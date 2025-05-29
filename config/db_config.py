@@ -1,10 +1,15 @@
-# Конфигурация MySQL
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 DB_CONFIG = {
-    "server": "localhost",
-    "database": "wordpress",
-    "user": "wordpress",
-    "password": "wordpress",
-    "port": "3306"
+    "server": os.getenv("DB_HOST"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "port": os.getenv("DB_PORT")
 }
 
 # Строка подключения к базе данных

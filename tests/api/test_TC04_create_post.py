@@ -1,32 +1,23 @@
+import allure
 import pytest
 
-from utils.api_client import api
-from utils.db_client import DbClient
+from utils.db_client import db_post_query as dpq
 
 
+@allure.feature("Пост")
+@allure.story("Создание поста")
+@allure.title("Проверка создания поста / positive")
 @pytest.mark.api_post
-def test_create_post(title_and_delete_post):
-    # 1. Запрос тестовых данных из фикстуры
-    post_id, expected_title = title_and_delete_post
+def test_create_post(title_and_delete_post, posts_api):
+    with allure.step("1. Формирование тестовых данных"):
+        post_id, expected_title = title_and_delete_post
 
-    # 2. Создание поста через API
-    response = api.post("/wp/v2/posts", json={"title": f"{expected_title}"})
+    with allure.step("2. Создание поста через API"):
+        response = posts_api.create_post(expected_title)
+        post_id["id"] = response.json().get("id", None)
 
-    # 3. Проверка статус-кода
-    assert response.status_code == 201, f"Ожидался статус-код 201, получен {response.status_code}"
+    with allure.step("3. Поиск в БД"):
+        db_response = dpq.get_post_title(post_id["id"])
 
-    # 4. Получение ID созданного поста
-    post_id["id"] = response.json().get("id", None)
-
-    # 5. Проверка в БД
-    with DbClient() as dbc:
-        db_response = dbc.query(
-            "SELECT post_title FROM wp_posts WHERE ID = ?",
-            (post_id["id"],)
-        )
-
-    assert db_response is not None, "Запрос к БД не вернул результатов"
-    assert len(db_response) == 1, "Пользователь не найден в БД"
-
-    # 6. Сравнение заголовков
-    assert expected_title == db_response[0]["post_title"]
+    with allure.step("4. Сравнение ожидаемых и фактических результатов"):
+        assert expected_title["title"] == db_response["post_title"]

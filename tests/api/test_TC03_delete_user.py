@@ -1,26 +1,20 @@
+import allure
 import pytest
 
-from utils.api_client import api
-from utils.db_client import DbClient
+from utils.db_client import db_user_query as duq
 
 
+@allure.feature("Пользователь")
+@allure.story("Удаление пользователя")
+@allure.title("Проверка Удаления пользователя / positive")
 @pytest.mark.api_user
-def test_delete_user(data_and_create_user):
-    # 1. Запрос тестовых данных из фикстуры
-    expected_data, user_id = data_and_create_user
+def test_delete_user(data_and_create_user, users_api):
+    with allure.step("1. Запрос тестовых данных из фикстуры"):
+        expected_data, user_id = data_and_create_user
 
-    # 2. Удаление пользователя через API
-    response = api.delete(f"/wp/v2/users/{user_id}", json={"reassign": "1", "force": "true"})
+    with allure.step("2. Удаление пользователя через API"):
+        users_api.delete_user(user_id)
 
-    # 3. Проверка статус-кода
-    assert response.status_code == 200, f"Ожидался статус 200, получен {response.status_code}"
-
-    # 4. Проверка в БД
-    with DbClient() as dbc:
-        db_response = dbc.query(
-            "SELECT user_login, user_email FROM wp_users WHERE ID = ?",
-            (user_id,)
-        )
-
-    assert db_response is not None, "Запрос к БД не вернул результатов"
-    assert len(db_response) == 0, "Пользователь найден в БД"
+    with allure.step("3. Проверка отсутствия пользователя в БД"):
+        db_response = duq.check_is_deleted(user_id)
+        assert db_response == 0, "Пользователь найден в БД"

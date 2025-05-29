@@ -1,25 +1,22 @@
+import allure
 import pytest
 
-from utils.api_client import api
-from utils.db_client import DbClient
+from utils.db_client import db_post_query as dpq
 
 
+@allure.feature("Пост")
+@allure.story("Удаление поста")
+@allure.title("Проверка удаления поста / positive")
 @pytest.mark.api_post
-def test_delete_post(data_and_create_post):
-    # 1. Формирование тестовых данных
-    post_id = data_and_create_post[1]
+def test_delete_post(data_and_create_post, posts_api):
+    with allure.step("1. Формирование тестовых данных"):
+        post_id = data_and_create_post[1]
 
-    # 2. Удаление поста через API
-    response = api.delete(f"/wp/v2/posts/{post_id}")
+    with allure.step("2. Удаление поста через API"):
+        posts_api.delete_post(post_id)
 
-    # 3. Проверка статус-кода
-    assert response.status_code == 200, f"Ожидался статус-код 200, получен {response.status_code}"
+    with allure.step("3. Поиск удаленного пользователя в БД"):
+        db_response = dpq.get_post_status(post_id)
 
-    # 4. Проверка БД
-    with DbClient() as dbc:
-        db_response = dbc.query(
-            "SELECT * FROM wp_posts WHERE ID = ?",
-            post_id)
-
-    # 5. Проверка значения атрибута "status", должно быть "trash"
-    assert db_response[0]["post_status"] == "trash"
+    with allure.step("4. Проверка значения атрибута 'status'"):
+        assert db_response["post_status"] == "trash"
