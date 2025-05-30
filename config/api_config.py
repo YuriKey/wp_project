@@ -1,2 +1,7 @@
-BASE_URL = "http://localhost:8000/wp-json"
-ADMIN_CREDS = ("yuri.krenev", "123-Test")  # Логин/пароль для Basic Auth в WP
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_URL = os.getenv("BASE_URL")
+ADMIN_CREDS = (os.getenv("ADMIN_LOGIN"), os.getenv("ADMIN_PASSWORD"))
