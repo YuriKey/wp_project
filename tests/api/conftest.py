@@ -57,9 +57,14 @@ def data_and_create_user():
     expected_data = gud.create_full_user_data()
 
     with DbClient() as dbc:
-        dbc.execute("INSERT INTO wp_users "
-                    "(user_pass, user_email, display_name, user_registered, user_login, user_nicename) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+        dbc.execute("""INSERT INTO wp_users (
+                    user_pass, 
+                    user_email,
+                    display_name, 
+                    user_registered, 
+                    user_login, 
+                    user_nicename) 
+                    VALUES (?, ?, ?, ?, ?, ?)""",
                     (expected_data["password"],
                      expected_data["email"],
                      expected_data["username"],
@@ -95,18 +100,18 @@ def data_and_create_post():
 
     with DbClient() as dbc:
         dbc.query(
-            "INSERT INTO wp_posts("
-            "post_title,"
-            "post_date,"
-            "post_date_gmt,"
-            "post_modified,"
-            "post_modified_gmt,"
-            "post_content,"
-            "post_excerpt,"
-            "to_ping,"
-            "pinged,"
-            "post_content_filtered)"
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+            """INSERT INTO wp_posts(
+            post_title,
+            post_date,
+            post_date_gmt,
+            post_modified,
+            post_modified_gmt,
+            post_content,
+            post_excerpt,
+            to_ping,
+            pinged,
+            post_content_filtered)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
             (post_data["post_title"],
              post_data["post_date"],
              post_data["post_date_gmt"],
