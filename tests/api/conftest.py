@@ -1,13 +1,13 @@
-# conftest.py
+import allure
 import pytest
 from faker import Faker
 
 from config.api_config import BASE_URL
-from data.generators.comment_data_generators import generated_comment_data as gcd
-from data.generators.post_data_generators import generated_post_data as gpd
-from data.generators.user_data_generators import generated_user_data as gud
+from data.generators.comment_data_generators import CommentData
+from data.generators.post_data_generators import PostData
+from data.generators.user_data_generators import UsersData
 from utils.api_client import UsersApi, PostsApi, CommentsApi
-from utils.db_client import DbClient
+from utils.db_client import DbClient, UserClient as uc, PostClient as pc
 
 fake = Faker()
 
@@ -17,6 +17,21 @@ def db():
     """Фикстура для тестов с БД."""
     client = DbClient()
     yield client
+
+
+@pytest.fixture
+def users_data_generate():
+    return UsersData
+
+
+@pytest.fixture
+def posts_data_generate():
+    return PostData
+
+
+@pytest.fixture
+def comments_data_generate():
+    return CommentData
 
 
 @pytest.fixture
@@ -35,110 +50,70 @@ def users_api():
 
 
 @pytest.fixture(scope="function")
-def data_and_delete_user():
+def data_and_delete_user(users_api, users_data_generate):
     """
     Возвращает сгенерированную user_data и пустой словарь для user_id перед тестом.
     Удаляет пользователя после теста.
     """
     user_id = {"id": None}
-    expected_data = gud.create_minimal_user_data()
+    with allure.step("Предусловие: генерация минимальных данных пользователя"):
+        expected_data = users_data_generate.create_minimal_user_data()
 
     yield user_id, expected_data
     if user_id["id"]:
-        with DbClient() as dbc:
-            dbc.execute("DELETE FROM wp_users WHERE ID = ?", (user_id["id"],))
+        with allure.step("Постусловие: удаление пользователя"):
+            users_api.delete_user(user_id["id"])
 
 
 @pytest.fixture(scope="function")
-def data_and_create_user():
+def data_and_create_user(users_data_generate):
     """
     Возвращает сгенерированную user_data и user_id перед тестом.
     """
-    expected_data = gud.create_full_user_data()
+    with allure.step("Предусловие: генерация данных пользователя"):
+        expected_data = users_data_generate.create_full_user_data()
 
-    with DbClient() as dbc:
-        dbc.execute("""INSERT INTO wp_users (
-                    user_pass, 
-                    user_email,
-                    display_name, 
-                    user_registered, 
-                    user_login, 
-                    user_nicename) 
-                    VALUES (?, ?, ?, ?, ?, ?)""",
-                    (expected_data["password"],
-                     expected_data["email"],
-                     expected_data["username"],
-                     fake.date_time(),
-                     expected_data["login"],
-                     expected_data["user_nicename"]
-                     )),
-        user_id = dbc.query("SELECT ID FROM wp_users WHERE user_login = ?", (expected_data["login"],)),
-
-        return expected_data, user_id[0][0]["ID"]
+    user_id = uc.db_create_user(expected_data)
+    return expected_data, user_id
 
 
 @pytest.fixture(scope="function")
-def title_and_delete_post():
+def title_and_delete_post(posts_api, posts_data_generate):
     """
     Возвращает сгенерированную post_title и пустой словарь для post_id перед тестом.
     Удаляет пост после теста.
     """
     post_id = {"id": None}
-    post_data = gpd.generate_minimal_post_data()
+    with allure.step("Предусловие: генерация минимальных данных"):
+        post_data = posts_data_generate.generate_minimal_post_data()
+
     yield post_id, post_data
     if post_id["id"]:
-        with DbClient() as dbc:
-            dbc.execute("DELETE FROM wp_posts WHERE ID = ?", (post_id["id"],))
+        with allure.step("Постусловие: удаление поста"):
+            posts_api.delete_post(post_id["id"])
 
 
 @pytest.fixture(scope="function")
-def data_and_create_post():
+def data_and_create_post(posts_data_generate):
     """
     Возвращает сгенерированную post_data и post_id перед тестом.
     """
-    post_data = gpd.generate_full_post_data()
+    with allure.step("Предусловие: генерация данных поста"):
+        post_data = posts_data_generate.generate_full_post_data()
 
-    with DbClient() as dbc:
-        dbc.query(
-            """INSERT INTO wp_posts(
-            post_title,
-            post_date,
-            post_date_gmt,
-            post_modified,
-            post_modified_gmt,
-            post_content,
-            post_excerpt,
-            to_ping,
-            pinged,
-            post_content_filtered)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
-            (post_data["post_title"],
-             post_data["post_date"],
-             post_data["post_date_gmt"],
-             post_data["post_modified"],
-             post_data["post_modified_gmt"],
-             post_data["post_content"],
-             post_data["post_excerpt"],
-             post_data["to_ping"],
-             post_data["pinged"],
-             post_data["post_content_filtered"]
-             )
-        ),
-        post_id = dbc.query(
-            "SELECT ID FROM wp_posts WHERE post_title = ?",
-            (post_data["post_title"],)
-        )
+    post_id = pc.db_create_post(post_data)
 
-    return post_data, post_id[0]["ID"]
+    return post_data, post_id
 
 
 @pytest.fixture(scope="function")
-def data_and_create_comment(data_and_create_post):
+def data_and_create_comment(data_and_create_post, comments_data_generate):
     """
     Возвращает сгенерированную comment_data и post_id перед тестом.
     """
-    post_id = data_and_create_post[1]
+    with allure.step("Предусловие: создание поста, генерация данных комментария"):
+        post_id = data_and_create_post[1]
 
-    data_comment = gcd.generate_comment_data(post_id)
+        data_comment = comments_data_generate.generate_comment_data(post_id)
 
     return data_comment, post_id

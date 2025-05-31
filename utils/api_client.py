@@ -1,7 +1,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-from config.api_config import ADMIN_CREDS, BASE_URL
+from config.api_config import ADMIN_CREDS, Endpoints as ep
 
 
 class ApiClient:
@@ -27,7 +27,7 @@ class ApiClient:
 class UsersApi(ApiClient):
     def __init__(self, base_url):
         super().__init__(base_url)
-        self.endpoint = "/wp/v2/users"
+        self.endpoint = ep.USERS_ENDPOINT
 
     def create_user(self, data):
         response = self.post(
@@ -37,24 +37,22 @@ class UsersApi(ApiClient):
         return response
 
     def update_user(self, user_id, data):
-        response = self.post(
+        self.post(
             f"{self.endpoint}/{user_id}"
             , json=data
             , expected_status=200)
-        return response
 
     def delete_user(self, user_id):
-        response = self.delete(
+        self.delete(
             f"{self.endpoint}/{user_id}"
             , json={"reassign": 1, "force": True}
             , expected_status=200)
-        return response
 
 
 class PostsApi(ApiClient):
     def __init__(self, base_url):
         super().__init__(base_url)
-        self.endpoint = "/wp/v2/posts"
+        self.endpoint = ep.POSTS_ENDPOINT
 
     def create_post(self, data):
         response = self.post(
@@ -64,23 +62,21 @@ class PostsApi(ApiClient):
         return response
 
     def update_post(self, post_id, data):
-        response = self.post(
+        self.post(
             f"{self.endpoint}/{post_id}"
             , json=data
             , expected_status=200)
-        return response
 
     def delete_post(self, post_id):
-        response = self.delete(
+        self.delete(
             f"{self.endpoint}/{post_id}"
             , expected_status=200)
-        return response
 
 
 class CommentsApi(ApiClient):
     def __init__(self, base_url):
         super().__init__(base_url)
-        self.endpoint = "/wp/v2/comments"
+        self.endpoint = ep.COMMENTS_ENDPOINT
 
     def create_comment(self, data):
         response = self.post(
@@ -90,20 +86,13 @@ class CommentsApi(ApiClient):
         return response
 
     def update_comment(self, comment_id, data):
-        response = self.post(
+        self.post(
             f"{self.endpoint}/{comment_id}"
             , json=data
             , expected_status=200)
-        return response
 
     def delete_comment(self, comment_id, data=None):
-        response = self.delete(
+        self.delete(
             f"{self.endpoint}/{comment_id}"
             , json=data
             , expected_status=200)
-        return response
-
-
-# users_api = UsersApi(BASE_URL)
-# post_api = PostsApi(BASE_URL)
-# comment_api = CommentsApi(BASE_URL)

@@ -1,6 +1,7 @@
 import pyodbc
 
 from config.db_config import CONNECT_STRING
+from data.models.user import UserDB
 
 
 class DbClient:
@@ -42,15 +43,11 @@ class UserClient(DbClient):
         assert db_response is not None, "Запрос к БД не вернул результатов"
         assert len(db_response) == 1, "Пользователь не найден в БД"
 
-        query_result = {
-            "username": db_response[0]["user_login"],
-            "email": db_response[0]["user_email"]
-        }
+        query_result = UserDB.from_db_row(db_response[0])
         return query_result
 
     @staticmethod
     def get_user_with_meta(user_id):
-
         with DbClient() as dbc:
             db_response = dbc.query(
                 "SELECT DISTINCT "
@@ -65,14 +62,35 @@ class UserClient(DbClient):
         assert db_response is not None, "Запрос к БД не вернул результатов"
         assert len(db_response) == 1, "Пользователь не найден в БД"
 
-        query_result = {
-            "user_login": db_response[0]["user_login"],
-            "name": db_response[0]["display_name"],
-            "user_email": db_response[0]["user_email"],
-            "last_name": db_response[0]["last_name"]
-        }
+        query_result = UserDB.from_db_row(db_response[0])
 
         return query_result
+
+    @staticmethod
+    def db_create_user(user_data):
+        from faker import Faker
+        fake = Faker()
+
+        with DbClient() as dbc:
+            dbc.execute("""INSERT INTO wp_users (
+                            user_pass, 
+                            user_email,
+                            display_name, 
+                            user_registered, 
+                            user_login, 
+                            user_nicename) 
+                            VALUES (?, ?, ?, ?, ?, ?)""",
+                        (user_data["password"],
+                         user_data["email"],
+                         user_data["username"],
+                         fake.date_time(),
+                         user_data["login"],
+                         user_data["user_nicename"]
+                         ))
+
+            user_id = dbc.query("SELECT ID FROM wp_users WHERE user_login = ?", (user_data["login"],)),
+
+            return user_id[0][0]["ID"]
 
     @staticmethod
     def check_is_deleted(user_id):
@@ -140,6 +158,41 @@ class PostClient(DbClient):
 
         return query_result
 
+    @staticmethod
+    def db_create_post(post_data):
+        with DbClient() as dbc:
+            dbc.query(
+                """INSERT INTO wp_posts(
+                post_title,
+                post_date,
+                post_date_gmt,
+                post_modified,
+                post_modified_gmt,
+                post_content,
+                post_excerpt,
+                to_ping,
+                pinged,
+                post_content_filtered)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (post_data["post_title"],
+                 post_data["post_date"],
+                 post_data["post_date_gmt"],
+                 post_data["post_modified"],
+                 post_data["post_modified_gmt"],
+                 post_data["post_content"],
+                 post_data["post_excerpt"],
+                 post_data["to_ping"],
+                 post_data["pinged"],
+                 post_data["post_content_filtered"]
+                 )
+            ),
+            post_id = dbc.query(
+                "SELECT ID FROM wp_posts WHERE post_title = ?",
+                (post_data["post_title"],)
+            )
+
+        return post_id[0]["ID"]
+
 
 class CommentClient(DbClient):
     def __init__(self):
@@ -173,8 +226,3 @@ class CommentClient(DbClient):
         assert db_response is not None, "Запрос к БД не вернул результатов"
 
         return query_result
-
-
-db_user_query = UserClient()
-db_post_query = PostClient()
-db_comment_query = CommentClient()

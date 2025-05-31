@@ -5,14 +5,16 @@ fake = Faker()
 
 class PostData:
 
-    def generate_minimal_post_data(self):
+    @staticmethod
+    def generate_minimal_post_data():
         post_data = {
             "title": fake.text(max_nb_chars=60),
         }
 
         return post_data
 
-    def generate_full_post_data(self):
+    @staticmethod
+    def generate_full_post_data():
         post_data = {
             "post_title": fake.text(max_nb_chars=60),
             "post_date": fake.date_time(),
@@ -28,5 +30,11 @@ class PostData:
 
         return post_data
 
+    @staticmethod
+    def generate_post_title_content():
+        new_data = {
+            "title": fake.text(max_nb_chars=50),
+            "content": fake.text(max_nb_chars=1000),
+        }
 
-generated_post_data = PostData()
+        return new_data

@@ -30,5 +30,13 @@ class UsersData:
         }
         return user_data
 
-
-generated_user_data = UsersData()
+    @staticmethod
+    def create_user_data_without_username():
+        username = fake.user_name()
+        user_data = {
+            "name": f"{username}",
+            "last_name": f"{fake.last_name()}",
+            "email": f"{username}@{fake.domain_name()}",
+            "password": f"{fake.password()}"
+        }
+        return user_data
